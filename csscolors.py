@@ -33,9 +33,7 @@ class StyleExtractor(HTMLParser):
     """
 
     stylesheets = []
-
     styledata = False
-
     baseurl = ''
 
     def feed(self, text, _baseurl):
@@ -48,7 +46,7 @@ class StyleExtractor(HTMLParser):
                 url = next(attr[1] for attr in attrs if attr[0] == 'href')
                 css = http_get(urljoin(self.baseurl, url))
                 self.stylesheets.append(css)
-            except StopIteration:
+            except StopIteration: # attribute not found
                 pass
 
         elif tag == 'style':
@@ -58,7 +56,7 @@ class StyleExtractor(HTMLParser):
             try:
                 css = next(attr[1] for attr in attrs if attr[0] == 'style')
                 self.stylesheets.append(css)
-            except StopIteration:
+            except StopIteration: # attribute not found
                 pass
 
     def handle_endtag(self, tag):
