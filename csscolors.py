@@ -15,9 +15,10 @@ TODO:
         i.e. assign names to known colors, rgb/hsv table, ...
 """
 
+import argparse
 from html.parser import HTMLParser
 import re
-from sys import argv, stderr
+from sys import stderr
 from urllib.error import URLError
 from urllib.parse import urljoin, urlparse, urlunparse
 from urllib.request import Request, urlopen
@@ -132,10 +133,17 @@ def extract_colors(css):
         yield colordef[1]
 
 
+def read_arguments():
+    """ Read commandline arguments """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('URL', type=lambda u: Request(u).full_url)
+    return parser.parse_args()
+
+
 def csscolors(url):
-    """
-        Main function.
-    """
+    """ Main function. """
+
     style_extractor = StyleExtractor()
     style_extractor.feed(http_get(url), get_baseurl(url))
 
@@ -147,4 +155,6 @@ def csscolors(url):
 
 
 if __name__ == '__main__':
-    print(*csscolors(argv[1]), sep='\n')
+    argv = read_arguments()
+    result = csscolors(argv.URL)
+    print(*result, sep='\n')
