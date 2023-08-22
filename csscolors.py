@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-    Extract all color codes used in CSS in a website, reasonably sorted by HSV.
+    csscolors.py
 
+    Copyright (c) 2023 movatica <c0d3@movatica.com>
+    Licensed under The MIT License (MIT)
+
+    Extract all color codes used in CSS in a website, reasonably sorted by HSV.
     No third party dependencies.
 
     Usage:
