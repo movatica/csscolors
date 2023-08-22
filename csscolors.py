@@ -90,10 +90,16 @@ def http_get(url):
         return ''
 
 
+def color_hex2rgb(hexval):
+    """ Convert a six-digit hexvalue to RGB. Returns a tuple of integers (r,g,b)."""
+
+    hexval = hexval.lstrip('#')
+
+    return int(hexval[0:2], 16), int(hexval[2:4], 16), int(hexval[4:6], 16)
+
+
 def color_hex2hsv(hexval):
-    """
-        Convert a six-digit hexvalue to HSV.
-    """
+    """ Convert a six-digit hexvalue to HSV. Returns a tuple of integers (h,s,v)."""
 
     hexval = hexval.lstrip('#')
     r = int(hexval[0:2], 16)/255.0
@@ -138,6 +144,8 @@ def read_arguments():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('URL', type=lambda u: Request(u).full_url)
+    parser.add_argument('--html-output', action='store_true',
+            help='render colors as HTML table')
     return parser.parse_args()
 
 
@@ -154,7 +162,27 @@ def csscolors(url):
     return sorted(colors, key=color_hex2hsv)
 
 
+def html_table(colorlist):
+    """ Render list of colors as html table. """
+
+    html = ['<html><body><table style="font-family: monospace">']
+
+    for color in colorlist:
+        html.append('<tr>'
+                + '<td style="background-color: '+color+'"> '+color+' </td>'
+                + '<td> '+str(color_hex2rgb(color))+' </td>'
+                + '</tr>\n')
+
+    html.append('</table></body></html>')
+
+    return html
+
+
 if __name__ == '__main__':
     argv = read_arguments()
     result = csscolors(argv.URL)
+
+    if argv.html_output:
+        result = html_table(result)
+
     print(*result, sep='\n')
