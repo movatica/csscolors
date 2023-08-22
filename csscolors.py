@@ -13,9 +13,12 @@ TODO:
         i.e. hex, hexa, rgb, rgba, hsl, hsla, named
     - print colored output and more info about colors
         i.e. assign names to known colors, rgb/hsv table, ...
+    - add filtering options
+        i.e. minimal count, ranges for hsv, ...
 """
 
 import argparse
+from collections import Counter
 from html.parser import HTMLParser
 import re
 from sys import stderr
@@ -129,11 +132,11 @@ def color_hex2hsv(hexval):
     return h, s, cmax
 
 
-def extract_colors(css):
+def find_colors(css):
     """
         Extract color definitions from CSS code.
 
-        Currently limited to 6-digit hex values.
+        Currently limited to 6/8-digit hex values.
     """
     for colordef in re.finditer(r'color:\s*(#[0-9a-f]{6})', css):
         yield colordef[1]
@@ -146,20 +149,27 @@ def read_arguments():
     parser.add_argument('URL', type=lambda u: Request(u).full_url)
     parser.add_argument('--html-output', action='store_true',
             help='render colors as HTML table')
+    parser.add_argument('--sort-by', choices=['rgb', 'hsv', 'occurrence'], default='rgb',
+            help='sort colors by hue or count')
     return parser.parse_args()
 
 
-def csscolors(url):
+def csscolors(url, sortby):
     """ Main function. """
 
     style_extractor = StyleExtractor()
     style_extractor.feed(http_get(url), get_baseurl(url))
 
-    colors = set()
+    colors = Counter()
     for style in style_extractor.stylesheets:
-        colors.update(extract_colors(style))
+        colors.update(find_colors(style))
 
-    return sorted(colors, key=color_hex2hsv)
+    if sortby == 'rgb':
+        return sorted(colors.keys())
+    elif sortby == 'hsv':
+        return sorted(colors.keys(), key=color_hex2hsv)
+    else: # sortby == 'occurrence'
+        return (color for color,_ in colors.most_common())
 
 
 def html_table(colorlist):
@@ -180,7 +190,7 @@ def html_table(colorlist):
 
 if __name__ == '__main__':
     argv = read_arguments()
-    result = csscolors(argv.URL)
+    result = csscolors(argv.URL, argv.sort_by)
 
     if argv.html_output:
         result = html_table(result)
