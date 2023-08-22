@@ -41,23 +41,24 @@ class StyleExtractor(HTMLParser):
         super().feed(text)
 
     def handle_starttag(self, tag, attrs):
-        if tag == 'link' and ('rel', 'stylesheet') in attrs:
-            try:
-                url = next(attr[1] for attr in attrs if attr[0] == 'href')
-                css = http_get(urljoin(self.baseurl, url))
-                self.stylesheets.append(css)
-            except StopIteration: # attribute not found
-                pass
+        css = ''
 
-        elif tag == 'style':
+        if tag == 'style':
             self.styledata = True
 
-        else:
+        elif tag == 'link' and ('rel', 'stylesheet') in attrs:
             try:
-                css = next(attr[1] for attr in attrs if attr[0] == 'style')
-                self.stylesheets.append(css)
-            except StopIteration: # attribute not found
+                url = next(v for k,v in attrs if k == 'href')
+            except StopIteration:
                 pass
+            else:
+                css = http_get(urljoin(self.baseurl, url))
+
+        else:
+            css = next((v for k,v in attrs if k == 'style'), '')
+
+        if css:
+            self.stylesheets.append(css)
 
     def handle_endtag(self, tag):
         self.styledata = False
