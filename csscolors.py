@@ -17,10 +17,10 @@ TODO:
 
 from html.parser import HTMLParser
 import re
-from sys import argv
+from sys import argv, stderr
 from urllib.error import URLError
 from urllib.parse import urljoin, urlparse, urlunparse
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 
 class StyleExtractor(HTMLParser):
@@ -69,20 +69,23 @@ class StyleExtractor(HTMLParser):
 
 
 def get_baseurl(url):
-    """
-        Extract the base url from a random given url.
-    """
+    """ Extract the base url from a random given url. """
+
     urlparts = urlparse(url)
     return urlunparse((urlparts.scheme, urlparts.netloc, '','','',''))
 
 
 def http_get(url):
-    """
-        Return content from webpage using urlopen.
-    """
+    """ Return content from webpage using urlopen. """
+
+    request = Request(url, data=None, headers={
+        # Circumvent blocking of scripts on some sites.
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0'
+        })
     try:
-        return urlopen(url).read().decode('utf-8')
-    except URLError:
+        return urlopen(request).read().decode('utf-8')
+    except URLError as err:
+        print(err, file=stderr)
         return ''
 
 
