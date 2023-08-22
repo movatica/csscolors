@@ -19,6 +19,7 @@ TODO:
 
 import argparse
 from collections import Counter
+import html
 from html.parser import HTMLParser
 import re
 from sys import stderr
@@ -172,20 +173,24 @@ def csscolors(url, sortby):
         return (color for color,_ in colors.most_common())
 
 
-def html_table(colorlist):
+def html_table(colorlist, title):
     """ Render list of colors as html table. """
 
-    html = ['<html><body><table style="font-family: monospace">']
+    lines = [
+            '<!doctype html>',
+            '<html><head><title>'+html.escape(title)+'</title></head>',
+            '<body><table style="font-family: monospace">'
+            ]
 
     for color in colorlist:
-        html.append('<tr>'
-                + '<td style="background-color: '+color+'"> '+color+' </td>'
-                + '<td> '+str(color_hex2rgb(color))+' </td>'
-                + '</tr>')
+        lines.append('<tr>'
+                '<td style="background-color: '+color+'"> '+color+' </td>'
+                '<td> '+str(color_hex2rgb(color))+' </td>'
+                '</tr>')
 
-    html.append('</table></body></html>')
+    lines.append('</table></body></html>')
 
-    return html
+    return lines
 
 
 if __name__ == '__main__':
@@ -193,6 +198,6 @@ if __name__ == '__main__':
     result = csscolors(argv.URL, argv.sort_by)
 
     if argv.html_output:
-        result = html_table(result)
+        result = html_table(result, argv.URL)
 
     print(*result, sep='\n')
