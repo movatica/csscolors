@@ -149,8 +149,8 @@ def read_arguments():
     parser.add_argument('URL', type=lambda u: Request(u).full_url)
     parser.add_argument('--html-output', action='store_true',
             help='render colors as HTML table')
-    parser.add_argument('--sort-by', choices=['rgb', 'hsv', 'occurrence'], default='rgb',
-            help='sort colors by hue or count')
+    parser.add_argument('--sort-by', choices=['rgb', 'hsv', 'occ'], default='rgb',
+            help='sort colors by rgb value (default), hsv value or occurrence')
     return parser.parse_args()
 
 
@@ -168,7 +168,7 @@ def csscolors(url, sortby):
         return sorted(colors.keys())
     elif sortby == 'hsv':
         return sorted(colors.keys(), key=color_hex2hsv)
-    else: # sortby == 'occurrence'
+    else: # sortby == 'occ'
         return (color for color,_ in colors.most_common())
 
 
@@ -181,7 +181,7 @@ def html_table(colorlist):
         html.append('<tr>'
                 + '<td style="background-color: '+color+'"> '+color+' </td>'
                 + '<td> '+str(color_hex2rgb(color))+' </td>'
-                + '</tr>\n')
+                + '</tr>')
 
     html.append('</table></body></html>')
 
