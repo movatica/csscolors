@@ -101,52 +101,58 @@ def http_get(url, baseurl = ''):
         return '', ''
 
 
-def color_hex2rgb(hexval):
-    """ Convert a six-digit hexvalue to RGB. Returns a tuple of integers (r,g,b)."""
+def color_hex2rgb(hexstr):
+    """ Convert a css color hex string to RGB. Returns a tuple of integers (r,g,b)."""
 
-    hexval = hexval.lstrip('#')
+    if len(hexstr) >= 6:
+        return int(hexstr[0:2], 16), int(hexstr[2:4], 16), int(hexstr[4:6], 16)
 
-    return int(hexval[0:2], 16), int(hexval[2:4], 16), int(hexval[4:6], 16)
+    if len(hexstr) >= 3:
+        return int(hexstr[0], 16) * 0x11, int(hexstr[1], 16) * 0x11, int(hexstr[2], 16) * 0x11
+
+    raise ValueError
 
 
-def color_hex2hsv(hexval):
+def color_hex2hsl(hexstr):
     """ Convert a six-digit hexvalue to HSV. Returns a tuple of integers (h,s,v)."""
 
-    hexval = hexval.lstrip('#')
-    r = int(hexval[0:2], 16)/255.0
-    g = int(hexval[2:4], 16)/255.0
-    b = int(hexval[4:6], 16)/255.0
+    red, grn, blu = color_hex2rgb(hexstr)
 
-    cmin = min(r, g, b)
-    cmax = max(r, g, b)
-    delta = cmax - cmin
+    red /= 255.0
+    grn /= 255.0
+    blu /= 255.0
 
-    h = 60
-    if delta == 0.0:
-        h = 0
-    elif cmax == r:
-        h *= ((g - b)/delta) % 6
-    elif cmax == g:
-        h *= ((b - r)/delta) + 2
-    elif cmax == b:
-        h *= ((r - g)/delta) + 4
+    val = max(red, grn, blu)
+    xmin = min(red, grn, blu)
+    crm = val - xmin
 
-    s = 0
-    if cmax != 0.0:
-        s = delta / cmax
+    lit = (val + xmin) / 2.0
 
-    #v = cmax
 
-    return h, s, cmax
+    hue = 60
+    if crm == 0.0:
+        hue = 0
+    elif val == red:
+        hue *= ((grn - blu) / crm) % 6
+    elif val == grn:
+        hue *= ((blu - red) / crm) + 2
+    elif val == blu:
+        hue *= ((red - grn) / crm) + 4
+
+    sat = 0
+    if 0.0 < lit < 1.0:
+        sat = (val - lit) / min(lit, 1.0-lit)
+
+    return hue, sat, lit
 
 
 def find_colors(css):
     """
         Extract color definitions from CSS code.
 
-        Currently limited to 6/8-digit hex values.
+        Currently limited to hex values.
     """
-    for colordef in re.finditer(r'color:\s*(#[0-9a-f]{6})', css):
+    for colordef in re.finditer(r'color:\s*#([0-9a-f]{3,})', css):
         yield colordef[1]
 
 
@@ -157,8 +163,8 @@ def read_arguments():
     parser.add_argument('URL', type=lambda u: Request(u).full_url)
     parser.add_argument('--html-output', action='store_true',
             help='render colors as HTML table')
-    parser.add_argument('--sort-by', choices=['rgb', 'hsv', 'occ'], default='rgb',
-            help='sort colors by rgb value (default), hsv value or occurrence')
+    parser.add_argument('--sort-by', choices=['rgb', 'hsl', 'occ'], default='rgb',
+            help='sort colors by rgb value (default), hsl value or occurrence')
     return parser.parse_args()
 
 
@@ -175,8 +181,8 @@ def csscolors(url, sortby):
 
     if sortby == 'rgb':
         return sorted(colors.keys())
-    elif sortby == 'hsv':
-        return sorted(colors.keys(), key=color_hex2hsv)
+    elif sortby == 'hsl':
+        return sorted(colors.keys(), key=color_hex2hsl)
     else: # sortby == 'occ'
         return (color for color,_ in colors.most_common())
 
