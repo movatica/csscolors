@@ -28,7 +28,7 @@ from html.parser import HTMLParser
 import re
 from sys import stderr
 from urllib.error import URLError
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 
@@ -61,7 +61,7 @@ class StyleExtractor(HTMLParser):
             except StopIteration:
                 pass
             else:
-                css = http_get(urljoin(self.baseurl, url))
+                css, _ = http_get(url, self.baseurl)
 
         else:
             css = next((v for k,v in attrs if k == 'style'), '')
@@ -77,25 +77,28 @@ class StyleExtractor(HTMLParser):
             self.stylesheets.append(data)
 
 
-def get_baseurl(url):
-    """ Extract the base url from a random given url. """
+def http_get(url, baseurl = ''):
+    """
+        Return content and url from webpage using urlopen.
 
-    urlparts = urlparse(url)
-    return urlunparse((urlparts.scheme, urlparts.netloc, '','','',''))
+        Returning of the reponse url is necessary to handle redirects.
+    """
 
-
-def http_get(url):
-    """ Return content from webpage using urlopen. """
-
-    request = Request(url, data=None, headers={
-        # Circumvent blocking of scripts on some sites.
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0'
+    request = Request(
+        urljoin(baseurl, url),
+        data=None,
+        headers={
+            # Circumvent blocking of scripts on some sites.
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0',
+            'Referer': baseurl
         })
+
     try:
-        return urlopen(request).read().decode('utf-8')
+        with urlopen(request) as response:
+            return response.read().decode('utf-8'), response.url
     except URLError as err:
         print(err, file=stderr)
-        return ''
+        return '', ''
 
 
 def color_hex2rgb(hexval):
@@ -163,7 +166,8 @@ def csscolors(url, sortby):
     """ Main function. """
 
     style_extractor = StyleExtractor()
-    style_extractor.feed(http_get(url), get_baseurl(url))
+
+    style_extractor.feed(*http_get(url))
 
     colors = Counter()
     for style in style_extractor.stylesheets:
