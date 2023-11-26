@@ -184,7 +184,7 @@ def read_arguments():
     return parser.parse_args()
 
 
-def csscolors(url, sortby):
+def csscolors(url):
     """ Main function. """
 
     style_extractor = StyleExtractor()
@@ -195,12 +195,7 @@ def csscolors(url, sortby):
     for style in style_extractor.stylesheets:
         colors.update(find_colors(style))
 
-    if sortby == 'rgb':
-        return sorted(colors.keys())
-    elif sortby == 'hsl':
-        return sorted(colors.keys(), key=color_rgb2hsl)
-    else: # sortby == 'occ'
-        return (color for color,_ in colors.most_common())
+    return colors
 
 
 def html_table(colorlist, title):
@@ -212,8 +207,9 @@ def html_table(colorlist, title):
             '<body><table style="font-family: monospace">'
             ]
 
-    for color in colorlist:
+    for color, occurence in colorlist:
         lines.append('<tr>'
+                '<td align="right">'+str(occurence)+'</td>'
                 '<td style="color: '+color_rgb2fg(color)+';'
                     ' background-color: '+color_rgb2hex(color)+'">'
                     ' '+color_rgb2hex(color)+' </td>'
@@ -227,9 +223,18 @@ def html_table(colorlist, title):
 
 if __name__ == '__main__':
     argv = read_arguments()
-    result = csscolors(argv.URL, argv.sort_by)
+    colors = csscolors(argv.URL)
+
+    if argv.sort_by == 'rgb':
+        result = sorted(colors.items())
+    elif argv.sort_by == 'hsl':
+        result = sorted(colors.items(), key=lambda c:color_rgb2hsl(c[0]))
+    else: # argv.sort_by == 'occ'
+        result = colors.most_common()
 
     if argv.html_output:
-        result = html_table(result, argv.URL)
+        lines = html_table(result, argv.URL)
+    else:
+        lines = [f'{occurence}\t{color}' for color, occurence in result]
 
-    print(*result, sep='\n')
+    print(*lines, sep='\n')
