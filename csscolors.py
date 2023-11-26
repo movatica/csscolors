@@ -360,11 +360,9 @@ class StyleExtractor(HTMLParser):
             self.styledata = True
 
         elif tag == 'link' and ('rel', 'stylesheet') in attrs:
-            try:
-                url = next(v for k,v in attrs if k == 'href')
-            except StopIteration:
-                pass
-            else:
+            url = next((v for k,v in attrs if k == 'href'), '')
+
+            if url:
                 css, _ = http_get(url, self.baseurl)
 
         else:
@@ -389,12 +387,12 @@ def http_get(url, baseurl = ''):
     """
 
     request = Request(
-        urljoin(baseurl, url),
+        url=urljoin(baseurl, url),
         data=None,
         headers={
-            # Circumvent blocking of scripts on some sites.
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0',
-            'Referer': baseurl
+            'Accept': 'text/*',
+            'Referer': baseurl,
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/117.0',
         })
 
     try:
@@ -499,7 +497,7 @@ def csscolors(url):
 
     style_extractor = StyleExtractor()
 
-    style_extractor.feed(*http_get(url))
+    style_extractor.feed(*http_get(url, url))
 
     colors = Counter()
     for style in style_extractor.stylesheets:
