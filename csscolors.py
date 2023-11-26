@@ -470,10 +470,16 @@ def find_colors(css):
     """
         Extract color definitions from CSS code.
 
-        Currently limited to hex values.
+        Currently limited to hex values and names.
     """
-    for colordef in re.finditer(r'color:\s*#([0-9a-f]{3,})', css):
+    for colordef in re.finditer(r'color:\s*#([0-9a-f]{3,6})', css):
         yield color_hex2rgb(colordef[1])
+
+    for colordef in re.finditer(r'color:\s*([A-Za-z]{3,20})', css):
+        try:
+            yield ColorName2RGB[colordef[1].lower()]
+        except KeyError:
+            continue
 
 
 def read_arguments():
