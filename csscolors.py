@@ -156,6 +156,12 @@ def color_rgb2hsl(rgb):
     return hue, sat, lit
 
 
+def color_rgb2fg(rgb):
+    """ Determine foreground color for best contrast. """
+
+    return ("#000000", "#FFFFFF")[sum(rgb) < 383]
+
+
 def find_colors(css):
     """
         Extract color definitions from CSS code.
@@ -208,8 +214,9 @@ def html_table(colorlist, title):
 
     for color in colorlist:
         lines.append('<tr>'
-                '<td style="background-color: '+color_rgb2hex(color)+
-                    '"> '+color_rgb2hex(color)+' </td>'
+                '<td style="color: '+color_rgb2fg(color)+';'
+                    ' background-color: '+color_rgb2hex(color)+'">'
+                    ' '+color_rgb2hex(color)+' </td>'
                 '<td> '+str(color)+' </td>'
                 '</tr>')
 
