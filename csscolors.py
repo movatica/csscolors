@@ -113,10 +113,20 @@ def color_hex2rgb(hexstr):
     raise ValueError
 
 
-def color_hex2hsl(hexstr):
-    """ Convert a six-digit hexvalue to HSV. Returns a tuple of integers (h,s,v)."""
+def color_rgb2hex(rgb):
+    """ Create hex string from RGB value. """
 
-    red, grn, blu = color_hex2rgb(hexstr)
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+
+def color_rgb2hsl(rgb):
+    """
+        Convert an RGB tuple to HSL.
+
+        Returns a tuple of integers (h,s,l).
+    """
+
+    red, grn, blu  = rgb
 
     red /= 255.0
     grn /= 255.0
@@ -153,7 +163,7 @@ def find_colors(css):
         Currently limited to hex values.
     """
     for colordef in re.finditer(r'color:\s*#([0-9a-f]{3,})', css):
-        yield colordef[1]
+        yield color_hex2rgb(colordef[1])
 
 
 def read_arguments():
@@ -182,7 +192,7 @@ def csscolors(url, sortby):
     if sortby == 'rgb':
         return sorted(colors.keys())
     elif sortby == 'hsl':
-        return sorted(colors.keys(), key=color_hex2hsl)
+        return sorted(colors.keys(), key=color_rgb2hsl)
     else: # sortby == 'occ'
         return (color for color,_ in colors.most_common())
 
@@ -198,8 +208,9 @@ def html_table(colorlist, title):
 
     for color in colorlist:
         lines.append('<tr>'
-                '<td style="background-color: '+color+'"> '+color+' </td>'
-                '<td> '+str(color_hex2rgb(color))+' </td>'
+                '<td style="background-color: '+color_rgb2hex(color)+
+                    '"> '+color_rgb2hex(color)+' </td>'
+                '<td> '+str(color)+' </td>'
                 '</tr>')
 
     lines.append('</table></body></html>')
