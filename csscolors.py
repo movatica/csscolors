@@ -461,7 +461,10 @@ def color_rgb2hsl(rgb):
 def color_rgb2fg(rgb):
     """ Determine foreground color for best contrast. """
 
-    return ("#000000", "#FFFFFF")[sum(rgb) < 383]
+    red, grn, blu = rgb
+    lum = 2*red + 7*grn + blu
+
+    return ("#000000", "#FFFFFF")[lum < 5*255]
 
 
 def find_colors(css):
