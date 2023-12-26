@@ -528,9 +528,9 @@ def read_arguments():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('URL', type=lambda u: Request(u).full_url)
-    parser.add_argument('--html-output', action='store_true',
+    parser.add_argument('-t', '--html-output', action='store_true',
             help='render colors as HTML table')
-    parser.add_argument('--sort-by', choices=['rgb', 'hsl', 'occ'], default='occ',
+    parser.add_argument('-s', '--sort-by', choices=['rgb', 'hsl', 'occ'], default='occ',
             help='sort colors by rgb values, hsl values or occurrence (default)')
     return parser.parse_args()
 
