@@ -5,7 +5,7 @@
     Copyright (c) 2023 movatica <c0d3@movatica.com>
     Licensed under The MIT License (MIT)
 
-    Extract all color codes used in CSS in a website, reasonably sorted by HSV.
+    Extract, convert and display CSS color values used in a website.
     No third party dependencies.
 
     Usage:
@@ -13,12 +13,10 @@
 
 
 TODO:
-    - support all possible CSS color values
-        i.e. hex, hexa, rgb, rgba, hsl, hsla, named
-    - print colored output and more info about colors
-        i.e. assign names to known colors, rgb/hsv table, ...
-    - add filtering options
-        i.e. minimal count, ranges for hsv, ...
+    - colored output on commandline
+    - translate between all possible representations
+        https://www.w3schools.com/cssref/css_colors_legal.php
+    - add all representation variants to table
 """
 
 import argparse
@@ -32,11 +30,8 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 
-"""
-    Maps (R,G,B) tuple to color name.
-
-    Source: https://www.w3schools.com/colors/colors_names.asp
-"""
+# Maps (R,G,B) tuple to color name.
+# Source: https://www.w3schools.com/colors/colors_names.asp
 RGB2ColorName = {
     (0, 0, 0): 'Black',
     (0, 0, 128): 'Navy',
@@ -179,11 +174,8 @@ RGB2ColorName = {
     (255, 255, 255): 'White',
 }
 
-"""
-    Maps color name to (R,G,B) tuple.
-
-    Source: https://www.w3schools.com/colors/colors_names.asp
-"""
+# Maps color name to (R,G,B) tuple.
+# Source: https://www.w3schools.com/colors/colors_names.asp
 ColorName2RGB = {
     'aliceblue': (240, 248, 255),
     'antiquewhite': (250, 235, 215),
