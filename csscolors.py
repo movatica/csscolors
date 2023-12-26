@@ -395,12 +395,16 @@ def http_get(url, baseurl = ''):
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/117.0',
         })
 
-    try:
-        with urlopen(request) as response:
+    retry = 2
+    while retry:
+        try:
+            retry -= 1
+            response = urlopen(request, timeout = 10)
             return response.read().decode('utf-8'), response.url
-    except URLError as err:
-        print(err, file=stderr)
-        return '', ''
+        except (URLError, UnicodeError) as err:
+            print(f"{err} <{request.full_url}>", file=stderr)
+
+    return '', ''
 
 
 def color_hex2rgb(hexstr):
