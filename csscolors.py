@@ -379,6 +379,114 @@ class StyleExtractor(HTMLParser):
             self.stylesheets.append(data)
 
 
+class Color:
+    """ Encapsulate CSS color values including conversion. """
+    def __init__(self, red, green, blue):
+        self.red = red
+        self.green = green
+        self.blue = blue
+
+    def __eq__(self, other):
+        return (self.red, self.green, self.blue) == (other.red, other.green, other.blue)
+
+    def __hash__(self):
+        """ Hash over RGB value """
+        return self.red * 256 * 256 + self.blue * 256 + self.green
+
+    def __lt__(self, other):
+        """ Default sorting by RGB value """
+        return (self.red, self.green, self.blue) < (other.red, other.green, other.blue)
+
+    def __str__(self):
+        """ Default representation is the hex string """
+        return self.to_hexstr()
+
+    def get_bwcontrast(self):
+        """ Approximate whether black or white has better contrast. """
+        luminosity = 2*self.red + 7*self.green + self.blue
+
+        return Color(255,255,255) if luminosity < 5*255 else Color(0,0,0)
+
+    def get_name(self):
+        """ Get color name if present. """
+        try:
+            return RGB2ColorName[(self.red, self.green, self.blue)]
+        except KeyError:
+            return ''
+
+    def is_known(self):
+        """ Return whether the color value matches a predefined name. """
+        return (self.red, self.green, self.blue) in RGB2ColorName
+
+    def to_hexstr(self):
+        """ Return hex representation. """
+        return f"#{self.red:02x}{self.green:02x}{self.blue:02x}"
+
+    def to_rgb(self):
+        """ Return rgb function representation. """
+        return (self.red, self.green, self.blue)
+
+    def to_rgbstr(self):
+        """ Return rgb function representation. """
+        return f"rgb({self.red}, {self.green}, {self.blue})"
+
+    def to_hsl(self):
+        """ Convert to HSL tuple. """
+        red, grn, blu = self.red, self.green, self.blue
+
+        red /= 255.0
+        grn /= 255.0
+        blu /= 255.0
+
+        val = max(red, grn, blu)
+        xmin = min(red, grn, blu)
+        crm = val - xmin
+
+        lit = (val + xmin) / 2.0
+
+
+        hue = 60
+        if crm == 0.0:
+            hue = 0
+        elif val == red:
+            hue *= ((grn - blu) / crm) % 6
+        elif val == grn:
+            hue *= ((blu - red) / crm) + 2
+        elif val == blu:
+            hue *= ((red - grn) / crm) + 4
+
+        sat = 0
+        if 0.0 < lit < 1.0:
+            sat = (val - lit) / min(lit, 1.0-lit)
+
+        return hue, sat, lit
+
+    def to_hslstr(self):
+        """ Return hsl function representation. """
+        return "hsl({}, {}, {})".format(*self.to_hsl())
+
+
+    @classmethod
+    def from_hexstr(cls, hexstr):
+        """ Factory function from hex string. Raises ValueError on invalid string. """
+
+        if len(hexstr) >= 6:
+            return cls(int(hexstr[0:2], 16), int(hexstr[2:4], 16), int(hexstr[4:6], 16))
+
+        if len(hexstr) >= 3:
+            return cls(int(hexstr[0], 16) * 0x11, int(hexstr[1], 16) * 0x11, int(hexstr[2], 16) * 0x11)
+
+        raise ValueError
+
+
+    @classmethod
+    def from_name(cls, name):
+        """ Factory function from well known name. Raises KeyError on invalid name. """
+
+        return cls(*ColorName2RGB[name])
+
+
+
 def http_get(url, baseurl = ''):
     """
         Return content and url from webpage using urlopen.
@@ -407,70 +515,6 @@ def http_get(url, baseurl = ''):
     return '', ''
 
 
-def color_hex2rgb(hexstr):
-    """ Convert a css color hex string to RGB. Returns a tuple of integers (r,g,b)."""
-
-    if len(hexstr) >= 6:
-        return int(hexstr[0:2], 16), int(hexstr[2:4], 16), int(hexstr[4:6], 16)
-
-    if len(hexstr) >= 3:
-        return int(hexstr[0], 16) * 0x11, int(hexstr[1], 16) * 0x11, int(hexstr[2], 16) * 0x11
-
-    raise ValueError
-
-
-def color_rgb2hex(rgb):
-    """ Create hex string from RGB value. """
-
-    return "#{:02x}{:02x}{:02x}".format(*rgb)
-
-
-def color_rgb2hsl(rgb):
-    """
-        Convert an RGB tuple to HSL.
-
-        Returns a tuple of integers (h,s,l).
-    """
-
-    red, grn, blu  = rgb
-
-    red /= 255.0
-    grn /= 255.0
-    blu /= 255.0
-
-    val = max(red, grn, blu)
-    xmin = min(red, grn, blu)
-    crm = val - xmin
-
-    lit = (val + xmin) / 2.0
-
-
-    hue = 60
-    if crm == 0.0:
-        hue = 0
-    elif val == red:
-        hue *= ((grn - blu) / crm) % 6
-    elif val == grn:
-        hue *= ((blu - red) / crm) + 2
-    elif val == blu:
-        hue *= ((red - grn) / crm) + 4
-
-    sat = 0
-    if 0.0 < lit < 1.0:
-        sat = (val - lit) / min(lit, 1.0-lit)
-
-    return hue, sat, lit
-
-
-def color_rgb2fg(rgb):
-    """ Determine foreground color for best contrast. """
-
-    red, grn, blu = rgb
-    lum = 2*red + 7*grn + blu
-
-    return ("#000000", "#FFFFFF")[lum < 5*255]
-
-
 def find_colors(css):
     """
         Extract color definitions from CSS code.
@@ -478,11 +522,11 @@ def find_colors(css):
         Currently limited to hex values and names.
     """
     for colordef in re.finditer(r'color:\s*#([0-9a-f]{3,6})', css):
-        yield color_hex2rgb(colordef[1])
+        yield Color.from_hexstr(colordef[1])
 
     for colordef in re.finditer(r'color:\s*([A-Za-z]{3,20})', css):
         try:
-            yield ColorName2RGB[colordef[1].lower()]
+            yield Color.from_name(colordef[1].lower())
         except KeyError:
             continue
 
@@ -522,16 +566,16 @@ def html_table(colorlist, title):
             '<body><table style="font-family: monospace">'
             ]
 
-    for color, occurence in colorlist:
-        name = f' &lt;{RGB2ColorName[color]}&gt;' if color in RGB2ColorName else ''
+    for color, occurrence in colorlist:
+        name = f' &lt;{color.get_name()}&gt;' if color.is_known() else ''
 
         lines.append('<tr>'
-                '<td align="right">'+str(occurence)+'</td>'
-                '<td style="color: '+color_rgb2fg(color)+';'
-                    ' background-color: '+color_rgb2hex(color)+'">'
-                    ' '+color_rgb2hex(color)+name+' </td>'
-                '<td> '+str(color)+' </td>'
-                '</tr>')
+                f'<td align="right">{occurrence}</td>'
+                f'<td style="color: {color.get_bwcontrast()};'
+                    f' background-color: {color}">'
+                    f' {color}{name} </td>'
+                f'<td> {color.to_rgbstr()} </td>'
+                 '</tr>')
 
     lines.append('</table></body></html>')
 
@@ -545,13 +589,13 @@ if __name__ == '__main__':
     if argv.sort_by == 'rgb':
         result = sorted(colors.items())
     elif argv.sort_by == 'hsl':
-        result = sorted(colors.items(), key=lambda c:color_rgb2hsl(c[0]))
+        result = sorted(colors.items(), key=lambda c:c.to_hsl())
     else: # argv.sort_by == 'occ'
         result = colors.most_common()
 
     if argv.html_output:
         lines = html_table(result, argv.URL)
     else:
-        lines = [f'{occurence}\t{color}' for color, occurence in result]
+        lines = [f'{occurence}\t{color.to_rgbstr()}' for color, occurence in result]
 
     print(*lines, sep='\n')
