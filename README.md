@@ -5,15 +5,16 @@ No third-party dependencies.
 
 ## Usage
 ~~~
-usage: csscolors.py [-h] [--html-output] [--sort-by {rgb,hsl,occ}] URL
+usage: csscolors.py [-h] [-c] [-t] [-s {rgb,hsl,occ}] URL
 
 positional arguments:
   URL
 
 options:
   -h, --help            show this help message and exit
-  --html-output         render colors as HTML table
-  --sort-by {rgb,hsl,occ}
+  -c, --ansi-colors     colorize console output
+  -t, --html-output     render colors as HTML table
+  -s {rgb,hsl,occ}, --sort-by {rgb,hsl,occ}
                         sort colors by rgb values, hsl values or occurrence (default)
 ~~~
 

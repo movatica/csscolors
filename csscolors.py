@@ -13,7 +13,6 @@
 
 
 TODO:
-    - colored output on commandline
     - translate between all possible representations
         https://www.w3schools.com/cssref/css_colors_legal.php
     - add all representation variants to table
@@ -410,6 +409,10 @@ class Color:
         """ Return whether the color value matches a predefined name. """
         return (self.red, self.green, self.blue) in RGB2ColorName
 
+    def to_ansi(self, background=False):
+        layer = (38,48)[background]
+        return f'\x1b[{layer};2;{self.red};{self.green};{self.blue}m'
+
     def to_hexstr(self):
         """ Return hex representation. """
         return f"#{self.red:02x}{self.green:02x}{self.blue:02x}"
@@ -528,6 +531,8 @@ def read_arguments():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('URL', type=lambda u: Request(u).full_url)
+    parser.add_argument('-c', '--ansi-colors', action='store_true',
+            help='colorize console output')
     parser.add_argument('-t', '--html-output', action='store_true',
             help='render colors as HTML table')
     parser.add_argument('-s', '--sort-by', choices=['rgb', 'hsl', 'occ'], default='occ',
@@ -587,6 +592,8 @@ if __name__ == '__main__':
 
     if argv.html_output:
         lines = html_table(result, argv.URL)
+    elif argv.ansi_colors:
+        lines  = [f'{occurence}\t{color.to_ansi(True)}{color.get_bwcontrast().to_ansi()}{color.to_rgbstr()}\x1b[m' for color, occurence in result]
     else:
         lines = [f'{occurence}\t{color.to_rgbstr()}' for color, occurence in result]
 
