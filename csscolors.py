@@ -15,7 +15,6 @@
 TODO:
     - translate between all possible representations
         https://www.w3schools.com/cssref/css_colors_legal.php
-    - add all representation variants to table
 """
 
 import argparse
@@ -454,11 +453,11 @@ class Color:
         if 0.0 < lit < 1.0:
             sat = (val - lit) / min(lit, 1.0-lit)
 
-        return hue, sat, lit
+        return round(hue), round(100*sat), round(100*lit)
 
     def to_hslstr(self):
         """ Return hsl function representation. """
-        return "hsl({}, {}, {})".format(*self.to_hsl())
+        return "hsl({}, {}%, {}%)".format(*self.to_hsl())
 
 
     @classmethod
@@ -559,19 +558,26 @@ def html_table(colorlist, title):
 
     lines = [
             '<!doctype html>',
-            '<html><head><title>'+html.escape(title)+'</title></head>',
-            '<body><table style="font-family: monospace">'
+            '<html><head>',
+            '<title>'+html.escape(title)+'</title>',
+            '<style>',
+            'td { padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; }',
+            'body { font-family: monospace; }',
+            '</style></head>',
+            '<body><table>'
             ]
 
     for color, occurrence in colorlist:
-        name = f' &lt;{color.get_name()}&gt;' if color.is_known() else ''
+        name = f'{color.get_name()}' if color.is_known() else ''
 
-        lines.append('<tr>'
-                f'<td align="right">{occurrence}</td>'
-                f'<td style="color: {color.get_bwcontrast()};'
+        lines.append(
+                f'<tr style="color: {color.get_bwcontrast()};'
                     f' background-color: {color}">'
-                    f' {color}{name} </td>'
+                f'<td align="right"> {occurrence} </td>'
+                f'<td> {name} </td>'
+                f'<td> {color.to_hexstr()} </td>'
                 f'<td> {color.to_rgbstr()} </td>'
+                f'<td> {color.to_hslstr()} </td>'
                  '</tr>')
 
     lines.append('</table></body></html>')
@@ -586,7 +592,7 @@ if __name__ == '__main__':
     if argv.sort_by == 'rgb':
         result = sorted(colors.items())
     elif argv.sort_by == 'hsl':
-        result = sorted(colors.items(), key=lambda c:c.to_hsl())
+        result = sorted(colors.items(), key=lambda c:c[0].to_hsl())
     else: # argv.sort_by == 'occ'
         result = colors.most_common()
 
