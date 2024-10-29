@@ -339,11 +339,11 @@ class StyleExtractor(HTMLParser):
     styledata = False
     baseurl = ''
 
-    def feed(self, text, _baseurl):
+    def feed(self, text: str, _baseurl: str):
         self.baseurl = _baseurl
         super().feed(text)
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: list):
         css = ''
 
         if tag == 'style':
@@ -361,33 +361,33 @@ class StyleExtractor(HTMLParser):
         if css:
             self.stylesheets.append(css)
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: str):
         self.styledata = False
 
-    def handle_data(self, data):
+    def handle_data(self, data: str):
         if self.styledata:
             self.stylesheets.append(data)
 
 
 class Color:
     """ Encapsulate CSS color values including conversion. """
-    def __init__(self, red, green, blue):
+    def __init__(self, red: int, green: int, blue: int):
         self.red = red
         self.green = green
         self.blue = blue
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (self.red, self.green, self.blue) == (other.red, other.green, other.blue)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """ Hash over RGB value """
         return self.red * 256 * 256 + self.blue * 256 + self.green
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         """ Default sorting by RGB value """
         return (self.red, self.green, self.blue) < (other.red, other.green, other.blue)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Default representation is the hex string """
         return self.to_hexstr()
 
@@ -397,34 +397,35 @@ class Color:
 
         return Color(255,255,255) if luminosity < 5*255 else Color(0,0,0)
 
-    def get_name(self):
+    def get_name(self) -> str:
         """ Get color name if present. """
         try:
             return RGB2ColorName[(self.red, self.green, self.blue)]
         except KeyError:
             return ''
 
-    def is_known(self):
+    def is_known(self) -> bool:
         """ Return whether the color value matches a predefined name. """
         return (self.red, self.green, self.blue) in RGB2ColorName
 
-    def to_ansi(self, background=False):
+    def to_ansi(self, background: bool = False) -> str:
+        """ Return ANSI rgb color code for command lines. """
         layer = (38,48)[background]
         return f'\x1b[{layer};2;{self.red};{self.green};{self.blue}m'
 
-    def to_hexstr(self):
+    def to_hexstr(self) -> str:
         """ Return hex representation. """
         return f"#{self.red:02x}{self.green:02x}{self.blue:02x}"
 
-    def to_rgb(self):
+    def to_rgb(self) -> tuple[int, int, int]:
         """ Return rgb function representation. """
         return (self.red, self.green, self.blue)
 
-    def to_rgbstr(self):
+    def to_rgbstr(self) -> str:
         """ Return rgb function representation. """
         return f"rgb({self.red}, {self.green}, {self.blue})"
 
-    def to_hsl(self):
+    def to_hsl(self) -> tuple[int, int, int]:
         """ Convert to HSL tuple. """
         red, grn, blu = self.red, self.green, self.blue
 
@@ -455,33 +456,39 @@ class Color:
 
         return round(hue), round(100*sat), round(100*lit)
 
-    def to_hslstr(self):
+    def to_hslstr(self) -> str:
         """ Return hsl function representation. """
         return "hsl({}, {}%, {}%)".format(*self.to_hsl())
 
 
     @classmethod
-    def from_hexstr(cls, hexstr):
+    def from_hexstr(cls, hexstr: str):
         """ Factory function from hex string. Raises ValueError on invalid string. """
 
         if len(hexstr) >= 6:
-            return cls(int(hexstr[0:2], 16), int(hexstr[2:4], 16), int(hexstr[4:6], 16))
+            return cls(
+                    int(hexstr[0:2], 16),
+                    int(hexstr[2:4], 16),
+                    int(hexstr[4:6], 16))
 
         if len(hexstr) >= 3:
-            return cls(int(hexstr[0], 16) * 0x11, int(hexstr[1], 16) * 0x11, int(hexstr[2], 16) * 0x11)
+            return cls(
+                    int(hexstr[0], 16) * 0x11,
+                    int(hexstr[1], 16) * 0x11,
+                    int(hexstr[2], 16) * 0x11)
 
         raise ValueError
 
 
     @classmethod
-    def from_name(cls, name):
+    def from_name(cls, name: str):
         """ Factory function from well known name. Raises KeyError on invalid name. """
 
         return cls(*ColorName2RGB[name])
 
 
 
-def http_get(url, baseurl = ''):
+def http_get(url: str, baseurl: str = '') -> tuple[str, str]:
     """
         Return content and url from webpage using urlopen.
 
@@ -509,7 +516,7 @@ def http_get(url, baseurl = ''):
     return '', ''
 
 
-def find_colors(css):
+def find_colors(css: str):
     """
         Extract color definitions from CSS code.
 
@@ -539,7 +546,7 @@ def read_arguments():
     return parser.parse_args()
 
 
-def csscolors(url):
+def csscolors(url: str) -> Counter:
     """ Main function. """
 
     style_extractor = StyleExtractor()
@@ -553,7 +560,7 @@ def csscolors(url):
     return colors
 
 
-def html_table(colorlist, title):
+def html_table(colorlist: list, title: str) -> list[str]:
     """ Render list of colors as html table. """
 
     lines = [
@@ -568,16 +575,14 @@ def html_table(colorlist, title):
             ]
 
     for color, occurrence in colorlist:
-        name = f'{color.get_name()}' if color.is_known() else ''
-
         lines.append(
                 f'<tr style="color: {color.get_bwcontrast()};'
                     f' background-color: {color}">'
-                f'<td align="right"> {occurrence} </td>'
-                f'<td> {name} </td>'
-                f'<td> {color.to_hexstr()} </td>'
-                f'<td> {color.to_rgbstr()} </td>'
-                f'<td> {color.to_hslstr()} </td>'
+                f'<td align="right">{occurrence}</td>'
+                f'<td>{color.get_name()}</td>'
+                f'<td>{color.to_hexstr()}</td>'
+                f'<td>{color.to_rgbstr()}</td>'
+                f'<td>{color.to_hslstr()}</td>'
                  '</tr>')
 
     lines.append('</table></body></html>')
